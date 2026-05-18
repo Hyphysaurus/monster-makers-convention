@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monster Maker's Convention — Lesson 35</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#f6ecd2;
+    --parchment-deep:#e8d6a6;
+    --ink:#2a1c0e;
+    --ink-soft:#5b432a;
+    --gold:#d4a017;
+    --gold-deep:#a87b06;
+    --crimson:#a52a2a;
+    --emerald:#1f7a3a;
+    --indigo:#3b3b8f;
+    --sky:#6fb1ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:'Quicksand',system-ui,sans-serif;color:var(--ink);background:#1a1208}
+  body{
+    background:
+      radial-gradient(ellipse at top, #2a1a08 0%, #120a04 60%, #0a0502 100%) fixed;
+    min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Cinzel',serif;letter-spacing:.02em}
+  a{color:var(--gold-deep)}
+
+  /* ===== HUD ===== */
+  .hud{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg,#2a1a08,#1a1004);
+    border-bottom:3px solid var(--gold);
+    padding:10px 16px;
+    color:var(--parchment);
+    box-shadow:0 4px 20px rgba(0,0,0,.6);
+  }
+  .hud-row{display:flex;align-items:center;gap:14px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+  .hud-title{font-family:'Cinzel',serif;font-weight:800;font-size:1.05rem;color:var(--gold)}
+  .xp-wrap{flex:1;min-width:180px;background:#0b0703;border:2px solid var(--gold-deep);border-radius:999px;height:18px;overflow:hidden;position:relative}
+  .xp-bar{height:100%;width:0%;background:linear-gradient(90deg,#ffd966,#d4a017);transition:width .6s ease}
+  .xp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{
+    width:32px;height:32px;border-radius:50%;
+    background:#0b0703;border:2px solid #3a2a14;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;
+    transition:transform .3s, background .3s, border-color .3s, box-shadow .3s;
+    filter:grayscale(1) brightness(.5);
+  }
+  .badge.earned{background:linear-gradient(135deg,#d4a017,#ffd966);border-color:#fff;filter:none;box-shadow:0 0 12px var(--gold)}
+  .reset-btn{
+    background:transparent;border:1px solid #6b4f25;color:#caa45c;
+    padding:4px 10px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:inherit;
+  }
+  .reset-btn:hover{background:#3a2a14}
+
+  /* ===== HERO ===== */
+  .hero{
+    text-align:center;padding:40px 16px 30px;color:var(--parchment);
+    background:radial-gradient(ellipse at center, rgba(212,160,23,.12), transparent 70%);
+  }
+  .hero h1{font-size:clamp(1.8rem,5vw,3rem);color:var(--gold);margin:0 0 .3em;text-shadow:0 0 24px rgba(212,160,23,.4)}
+  .hero p{max-width:640px;margin:0 auto;font-size:1.05rem;color:#e8d6a6}
+  .hero .scroll-cta{margin-top:18px;display:inline-block;background:var(--gold);color:#1a0f04;padding:10px 22px;border-radius:999px;font-weight:700;text-decoration:none;border:2px solid #fff2c4}
+  .hero .scroll-cta:hover{filter:brightness(1.08)}
+
+  /* ===== QUEST MAP ===== */
+  .map{max-width:1100px;margin:30px auto;padding:0 16px}
+  .map h2{color:var(--gold);text-align:center;margin-bottom:18px}
+  .quest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+  .quest-tile{
+    background:linear-gradient(180deg,#3a2814,#22160a);
+    border:2px solid var(--gold-deep);border-radius:14px;padding:14px;
+    color:var(--parchment);text-align:center;cursor:pointer;text-decoration:none;
+    transition:transform .25s,border-color .25s,box-shadow .25s;
+    position:relative;
+  }
+  .quest-tile:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 24px rgba(212,160,23,.3)}
+  .quest-tile.done{border-color:#5fd989;box-shadow:0 0 0 2px rgba(95,217,137,.4) inset}
+  .quest-tile .num{font-family:'Cinzel',serif;color:var(--gold);font-size:.9rem;letter-spacing:.18em}
+  .quest-tile .title{font-family:'Cinzel',serif;font-weight:600;margin:6px 0 4px;font-size:1rem}
+  .quest-tile .xp{font-size:.8rem;color:#ffd966}
+  .quest-tile .check{position:absolute;top:8px;right:10px;color:#5fd989;font-weight:900;opacity:0;transition:opacity .3s;font-size:1.2rem}
+  .quest-tile.done .check{opacity:1}
+
+  /* ===== QUEST CARDS ===== */
+  .quest{
+    max-width:980px;margin:36px auto;padding:24px;
+    background:linear-gradient(180deg, var(--parchment) 0%, var(--parchment-deep) 100%);
+    border:3px double var(--gold-deep);border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 0 30px rgba(168,123,6,.08);
+    position:relative;
+  }
+  .quest::before{
+    content:"";position:absolute;inset:6px;border:1px solid rgba(168,123,6,.3);border-radius:14px;pointer-events:none;
+  }
+  .quest-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .quest-head .ribbon{
+    background:var(--crimson);color:#fff;padding:4px 12px;border-radius:6px;font-family:'Cinzel',serif;font-size:.8rem;letter-spacing:.15em
+  }
+  .quest-head h2{margin:0;color:var(--ink);font-size:1.5rem}
+  .quest-head .reward{margin-left:auto;background:var(--gold);color:#1a0f04;padding:6px 12px;border-radius:999px;font-weight:700;font-size:.85rem}
+  .quest p{line-height:1.55;color:var(--ink-soft)}
+  .quest strong{color:var(--ink)}
+
+  /* ===== Q1 - SCROLL ===== */
+  .scroll-form{display:grid;gap:12px;margin-top:12px}
+  .scroll-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+  .scroll-icon{
+    font-size:1.4rem;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:#fff8dc;border:2px solid var(--gold-deep);
+  }
+  .scroll-icon.star{background:#fff3b0;border-color:#caa45c}
+  .scroll-icon.push{background:#dff0d8;border-color:var(--emerald)}
+  .scroll-icon.q{background:#dceeff;border-color:var(--indigo)}
+  .scroll-row label{font-weight:700;font-family:'Cinzel',serif;display:block;margin-bottom:4px;color:var(--ink)}
+  .scroll-row textarea{
+    width:100%;min-height:60px;padding:8px 10px;border-radius:8px;
+    border:2px solid #c9b27a;background:#fffaf0;font-family:inherit;font-size:.95rem;resize:vertical;
+  }
+  .scroll-row textarea:focus{outline:none;border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(212,160,23,.25)}
+
+  /* ===== Q2 - SPELLS / SORT ===== */
+  .spellbook{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media (max-width:640px){.spellbook{grid-template-columns:1fr}}
+  .spell-col{
+    background:#fffaf0;border:2px solid var(--gold-deep);border-radius:10px;padding:12px;
+  }
+  .spell-col h3{margin:.2em 0 .5em;font-size:1.05rem}
+  .spell-col.compliments h3{color:var(--indigo)}
+  .spell-col.suggestions h3{color:var(--emerald)}
+  .spell-col ul{margin:.3em 0;padding-left:1.1em}
+  .spell-col li{margin:.2em 0}
+  .sort-game{margin-top:20px;background:#fff8dc;border:2px dashed var(--gold-deep);border-radius:12px;padding:14px}
+  .sort-game h3{margin:.2em 0 .6em;color:var(--crimson)}
+  .sort-deck{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:8px;background:rgba(168,123,6,.08);border-radius:8px}
+  .sort-card{
+    background:#fff;border:2px solid #caa45c;border-radius:8px;padding:8px 12px;font-size:.9rem;cursor:grab;user-select:none;
+    box-shadow:0 2px 4px rgba(0,0,0,.1);transition:transform .15s,box-shadow .15s;
+  }
+  .sort-card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15)}
+  .sort-card.dragging{opacity:.5}
+  .sort-bins{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  @media(max-width:640px){.sort-bins{grid-template-columns:1fr}}
+  .sort-bin{
+    min-height:90px;border:2px dashed #999;border-radius:10px;padding:10px;background:#fffefa;transition:border-color .2s,background .2s;
+  }
+  .sort-bin.compliment{border-color:var(--indigo)}
+  .sort-bin.suggestion{border-color:var(--emerald)}
+  .sort-bin.drag-over{background:#fff3b0}
+  .sort-bin h4{margin:.1em 0 .4em;font-family:'Cinzel',serif}
+  .sort-bin.compliment h4{color:var(--indigo)}
+  .sort-bin.suggestion h4{color:var(--emerald)}
+  .sort-bin .bin-cards{display:flex;flex-wrap:wrap;gap:6px;min-height:40px}
+  .sort-feedback{margin-top:10px;font-weight:700;min-height:1.4em}
+  .sort-feedback.win{color:var(--emerald)}
+  .sort-feedback.partial{color:var(--gold-deep)}
+
+  /* ===== Q3 - CHECKLIST ===== */
+  .checklist{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+  .checklist li{
+    background:#fffaf0;border:2px solid #caa45c;border-radius:10px;padding:10px 12px;
+    display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .2s,border-color .2s;
+  }
+  .checklist li:hover{background:#fff3b0}
+  .checklist li.checked{background:#dff0d8;border-color:var(--emerald);text-decoration:line-through;color:var(--ink-soft)}
+  .checklist .box{
+    width:24px;height:24px;border:2px solid var(--gold-deep);border-radius:6px;background:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:900;color:transparent;flex-shrink:0;
+  }
+  .checklist li.checked .box{background:var(--emerald);border-color:var(--emerald);color:#fff}
+
+  /* ===== Q4 - BATTLE ===== */
+  .battle-arena{
+    background:linear-gradient(180deg,#3a2814,#22160a);color:var(--parchment);
+    border:2px solid var(--gold-deep);border-radius:14px;padding:16px;margin-top:10px;
+  }
+  .battle-arena h3{color:var(--gold);margin-top:0}
+  .hydra-card{
+    background:rgba(0,0,0,.3);border:1px solid var(--gold-deep);border-radius:10px;padding:12px;margin:10px 0;
+  }
+  .hydra-card h4{margin:.2em 0;color:var(--gold)}
+  .move-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  @media(max-width:640px){.move-row{grid-template-columns:1fr}}
+  .move-btn{
+    background:#1a0f04;color:var(--parchment);border:2px solid var(--gold-deep);
+    border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;text-align:left;transition:background .2s,border-color .2s;
+  }
+  .move-btn:hover{background:#3a2814;border-color:var(--gold)}
+  .move-btn:disabled{opacity:.6;cursor:not-allowed}
+  .response{margin-top:14px;padding:12px;background:rgba(212,160,23,.1);border-left:4px solid var(--gold);border-radius:6px;min-height:1.6em}
+  .vote-area{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .vote-btn{
+    padding:10px 18px;border-radius:8px;border:none;font-weight:700;font-family:inherit;cursor:pointer;font-size:.95rem;
+  }
+  .vote-btn.up{background:var(--emerald);color:#fff}
+  .vote-btn.down{background:var(--crimson);color:#fff}
+  .vote-btn:hover{filter:brightness(1.1)}
+
+  /* ===== Q5 - VOCAB ===== */
+  .flashcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+  .flashcard{
+    background:transparent;border:none;padding:0;perspective:800px;cursor:pointer;height:140px;
+  }
+  .flashcard-inner{
+    position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s;
+  }
+  .flashcard.flipped .flashcard-inner{transform:rotateY(180deg)}
+  .flashcard .face{
+    position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;padding:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    border:2px solid var(--gold-deep);
+  }
+  .flashcard .front{background:linear-gradient(180deg,#fff8dc,#f6ecd2)}
+  .flashcard .front h3{margin:0;font-size:1.3rem;color:var(--crimson)}
+  .flashcard .front .pron{font-size:.8rem;color:var(--ink-soft);margin-top:4px;font-style:italic}
+  .flashcard .front .hint{font-size:.7rem;color:var(--gold-deep);margin-top:8px;letter-spacing:.1em}
+  .flashcard .back{background:linear-gradient(180deg,#3a2814,#22160a);color:var(--parchment);transform:rotateY(180deg);font-size:.9rem;line-height:1.4}
+
+  .name-forge{
+    margin-top:18px;background:#fff8dc;border:2px dashed var(--gold-deep);border-radius:12px;padding:14px;
+  }
+  .name-forge h3{margin:.1em 0 .5em;color:var(--crimson)}
+  .forge-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .forge-controls select{
+    padding:8px 10px;border-radius:8px;border:2px solid var(--gold-deep);background:#fff;font-family:inherit;font-size:.95rem;
+  }
+  .forge-controls button{
+    padding:8px 16px;border-radius:8px;border:none;background:var(--gold);color:#1a0f04;font-weight:700;cursor:pointer;font-family:inherit;
+  }
+  .forge-result{
+    margin-top:12px;background:#1a0f04;color:var(--gold);padding:14px;border-radius:10px;
+    font-family:'Cinzel',serif;font-size:1.3rem;text-align:center;min-height:1.6em;letter-spacing:.05em;
+    border:2px solid var(--gold-deep);
+  }
+  .forge-result .sub{display:block;font-family:'Quicksand',sans-serif;color:var(--parchment);font-size:.85rem;margin-top:4px;letter-spacing:0}
+
+  /* ===== FINAL ===== */
+  .homework{display:grid;gap:10px;margin-top:12px}
+  .hw-card{background:#fffaf0;border:2px solid var(--gold-deep);border-radius:10px;padding:12px}
+  .hw-card strong{display:block;margin-bottom:4px;color:var(--crimson);font-family:'Cinzel',serif}
+
+  /* ===== CLAIM BUTTON ===== */
+  .claim{
+    margin-top:14px;display:inline-block;background:var(--gold);color:#1a0f04;
+    padding:10px 22px;border-radius:999px;font-weight:700;border:2px solid #fff2c4;cursor:pointer;
+    font-family:inherit;font-size:1rem;transition:transform .2s,filter .2s;
+  }
+  .claim:hover{transform:translateY(-2px);filter:brightness(1.08)}
+  .claim:disabled{background:#9c8a52;border-color:#6b5e38;color:#3a2a14;cursor:default;transform:none}
+  .claim.claimed{background:var(--emerald);color:#fff;border-color:#a4f0bf}
+
+  /* ===== TOAST ===== */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);
+    background:var(--gold);color:#1a0f04;padding:12px 22px;border-radius:999px;font-weight:700;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;
+    z-index:100;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ===== FINAL FANFARE ===== */
+  .fanfare{
+    text-align:center;padding:30px;margin:30px auto;max-width:980px;
+    background:linear-gradient(180deg,#3a2814,#1a0f04);border:3px double var(--gold);border-radius:18px;color:var(--parchment);
+    display:none;
+  }
+  .fanfare.show{display:block;animation:pulse 1.2s ease-out}
+  .fanfare h2{color:var(--gold);font-size:2rem;margin:0 0 .3em;text-shadow:0 0 20px var(--gold)}
+  @keyframes pulse{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
+
+  footer{text-align:center;color:#6b5530;padding:30px 16px;font-size:.85rem}
+
+  /* small helpers */
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .pill{background:#fff8dc;border:1px solid var(--gold-deep);border-radius:999px;padding:4px 10px;font-size:.8rem;color:var(--ink-soft)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-row">
+    <div class="hud-title">Monster Maker's Convention</div>
+    <div class="xp-wrap" aria-label="Experience points">
+      <div class="xp-bar" id="xpBar"></div>
+      <div class="xp-text"><span id="xpNow">0</span> / <span id="xpMax">75</span> XP</div>
+    </div>
+    <div class="badges" id="badges" aria-label="Badges earned">
+      <div class="badge" data-q="1" title="Scroll Reader">S</div>
+      <div class="badge" data-q="2" title="Spell Sorter">F</div>
+      <div class="badge" data-q="3" title="Master Reviser">R</div>
+      <div class="badge" data-q="4" title="Brave Spectator">B</div>
+      <div class="badge" data-q="5" title="Word Wizard">W</div>
+    </div>
+    <button class="reset-btn" id="resetBtn">Reset</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Welcome, Monster Maker!</h1>
+  <p>Today you join the Convention! Sharpen your prototype, learn powerful feedback spells, and prepare for next week's battle against Odysseus himself. Complete each quest to earn XP and badges.</p>
+  <a class="scroll-cta" href="#quest1">Begin Your Quest</a>
+</section>
+
+<!-- MAP -->
+<div class="map">
+  <h2>~ Quest Map ~</h2>
+  <div class="quest-grid" id="questMap">
+    <a class="quest-tile" data-q="1" href="#quest1"><div class="check">&#10003;</div><div class="num">QUEST 1</div><div class="title">Read the Scroll</div><div class="xp">+10 XP</div></a>
+    <a class="quest-tile" data-q="2" href="#quest2"><div class="check">&#10003;</div><div class="num">QUEST 2</div><div class="title">Spell Workshop</div><div class="xp">+15 XP</div></a>
+    <a class="quest-tile" data-q="3" href="#quest3"><div class="check">&#10003;</div><div class="num">QUEST 3</div><div class="title">Revise the Prototype</div><div class="xp">+20 XP</div></a>
+    <a class="quest-tile" data-q="4" href="#quest4"><div class="check">&#10003;</div><div class="num">QUEST 4</div><div class="title">Battle Arena</div><div class="xp">+15 XP</div></a>
+    <a class="quest-tile" data-q="5" href="#quest5"><div class="check">&#10003;</div><div class="num">QUEST 5</div><div class="title">Word Wizard</div><div class="xp">+15 XP</div></a>
+  </div>
+</div>
+
+<!-- QUEST 1 -->
+<section class="quest" id="quest1">
+  <div class="quest-head">
+    <span class="ribbon">QUEST 1</span>
+    <h2>Read the Scroll of Feedback</h2>
+    <span class="reward">+10 XP</span>
+  </div>
+  <p>Your teacher has marked your rough draft. Look at the Rough Draft Feedback paper and fill in three things below.</p>
+
+  <div class="scroll-form">
+    <div class="scroll-row">
+      <div class="scroll-icon star" aria-hidden="true">&#9733;</div>
+      <div>
+        <label for="stars">Stars &mdash; compliments your teacher gave</label>
+        <textarea id="stars" placeholder="Example: My teacher loved my monster's spooky teeth!"></textarea>
+      </div>
+    </div>
+    <div class="scroll-row">
+      <div class="scroll-icon push" aria-hidden="true">&rarr;</div>
+      <div>
+        <label for="pushes">Pushes &mdash; suggestions your teacher gave</label>
+        <textarea id="pushes" placeholder="Example: Add one more weakness so Odysseus has a chance."></textarea>
+      </div>
+    </div>
+    <div class="scroll-row">
+      <div class="scroll-icon q" aria-hidden="true">?</div>
+      <div>
+        <label for="questions">Questions &mdash; anything you'd like help with</label>
+        <textarea id="questions" placeholder="Example: Is my How-to Guide clear enough?"></textarea>
+      </div>
+    </div>
+  </div>
+  <button class="claim" data-q="1">Claim 10 XP</button>
+</section>
+
+<!-- QUEST 2 -->
+<section class="quest" id="quest2">
+  <div class="quest-head">
+    <span class="ribbon">QUEST 2</span>
+    <h2>Spell Workshop: Feedback Spells</h2>
+    <span class="reward">+15 XP</span>
+  </div>
+  <p><strong>Constructive feedback</strong> is kind, helpful, and specific advice that helps a writer build up their writing. Here are your two spell types:</p>
+
+  <div class="spellbook">
+    <div class="spell-col compliments">
+      <h3>Compliment Spells</h3>
+      <ul>
+        <li>"I loved ..."</li>
+        <li>"It was so cool the way you ..."</li>
+        <li>"My favorite part was ..."</li>
+      </ul>
+    </div>
+    <div class="spell-col suggestions">
+      <h3>Suggestion Spells</h3>
+      <ul>
+        <li>"What would happen if ..."</li>
+        <li>"Maybe you could make it even stronger by ..."</li>
+        <li>"Maybe if you tried ..."</li>
+        <li>"I was a little confused by ..."</li>
+        <li>"It would be helpful if ..."</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sort-game">
+    <h3>Mini-Game: Sort the Spells</h3>
+    <p>Drag (or tap) each card into the right bin. When all six are sorted correctly, your XP unlocks!</p>
+    <div class="sort-deck" id="sortDeck"></div>
+    <div class="sort-bins">
+      <div class="sort-bin compliment" data-type="compliment">
+        <h4>Compliment Bin</h4>
+        <div class="bin-cards"></div>
+      </div>
+      <div class="sort-bin suggestion" data-type="suggestion">
+        <h4>Suggestion Bin</h4>
+        <div class="bin-cards"></div>
+      </div>
+    </div>
+    <div class="sort-feedback" id="sortFeedback"></div>
+  </div>
+  <button class="claim" data-q="2" disabled>Sort all 6 to claim 15 XP</button>
+</section>
+
+<!-- QUEST 3 -->
+<section class="quest" id="quest3">
+  <div class="quest-head">
+    <span class="ribbon">QUEST 3</span>
+    <h2>Revise the Prototype</h2>
+    <span class="reward">+20 XP</span>
+  </div>
+  <p>Use the checklist below to polish your monster prototype. Check each box as you finish.</p>
+
+  <ul class="checklist" id="revisionList">
+    <li data-id="r1"><div class="box">&#10003;</div><div>I read my teacher's stars, pushes, and questions.</div></li>
+    <li data-id="r2"><div class="box">&#10003;</div><div>My monster has <strong>Appearance</strong>, <strong>Abilities</strong>, and <strong>Weaknesses</strong>.</div></li>
+    <li data-id="r3"><div class="box">&#10003;</div><div>I used strong describing words (not just "big" or "scary").</div></li>
+    <li data-id="r4"><div class="box">&#10003;</div><div>My How-to Guide has clear, numbered steps Odysseus can follow.</div></li>
+    <li data-id="r5"><div class="box">&#10003;</div><div>I gave my monster at least one weakness so the battle is fair.</div></li>
+    <li data-id="r6"><div class="box">&#10003;</div><div>I read my draft out loud to check it makes sense.</div></li>
+    <li data-id="r7"><div class="box">&#10003;</div><div>I fixed spelling and capital letters.</div></li>
+  </ul>
+  <button class="claim" data-q="3" disabled>Check all boxes to claim 20 XP</button>
+</section>
+
+<!-- QUEST 4 -->
+<section class="quest" id="quest4">
+  <div class="quest-head">
+    <span class="ribbon">QUEST 4</span>
+    <h2>Sample Battle: The Labyrinthian Hydra</h2>
+    <span class="reward">+15 XP</span>
+  </div>
+  <p>Preview what next week's battle simulation feels like. Pick Odysseus's move and see how the Hydra responds!</p>
+
+  <div class="battle-arena">
+    <h3>Odysseus vs. The Labyrinthian Hydra</h3>
+
+    <div class="hydra-card">
+      <h4>Appearance</h4>
+      <p>Tall as a two-story house, with dark scales, twisted horns, and <strong>six snake-like heads</strong> with reflective eyes.</p>
+      <h4>Abilities</h4>
+      <p>Grows two heads when one is cut off &middot; venomous bite &middot; creates a shifting maze.</p>
+      <h4>Weaknesses</h4>
+      <p>Can only be <em>escaped</em>, never defeated. Vulnerable to distraction. Even fire (which can't hurt it) frightens it.</p>
+    </div>
+
+    <div>
+      <h4 style="color:var(--gold)">Odysseus's Belt Pouch</h4>
+      <div class="row">
+        <span class="pill">sword</span><span class="pill">shield</span><span class="pill">cloak</span><span class="pill">armor</span>
+        <span class="pill">rope</span><span class="pill">match</span><span class="pill">rock</span>
+        <span class="pill">lute</span><span class="pill">friendship bracelet</span><span class="pill">3 gold pieces</span><span class="pill">joke book</span>
+      </div>
+    </div>
+
+    <div class="move-row" id="moveRow">
+      <button class="move-btn" data-move="match">Light a match and toss it aside to scare the Hydra.</button>
+      <button class="move-btn" data-move="sword">Charge in and cut off a head with your sword.</button>
+      <button class="move-btn" data-move="joke">Open the joke book and read your funniest riddle.</button>
+      <button class="move-btn" data-move="lute">Play the lute to calm the Hydra down.</button>
+    </div>
+    <div class="response" id="battleResponse">Choose a move to see the Hydra's response...</div>
+
+    <div class="vote-area hidden" id="voteArea">
+      <p style="width:100%;text-align:center;margin:.3em 0">Spectators, vote on Odysseus's move:</p>
+      <button class="vote-btn up" data-vote="up">Smart Move!</button>
+      <button class="vote-btn down" data-vote="down">Not So Smart</button>
+    </div>
+  </div>
+  <button class="claim" data-q="4" disabled>Pick a move and vote to claim 15 XP</button>
+</section>
+
+<!-- QUEST 5 -->
+<section class="quest" id="quest5">
+  <div class="quest-head">
+    <span class="ribbon">QUEST 5</span>
+    <h2>Word Wizard: Vocabulary</h2>
+    <span class="reward">+15 XP</span>
+  </div>
+  <p>Click each card to flip it. Then use the <strong>Monster Name Forge</strong> to build your own monster name from word roots!</p>
+
+  <div class="flashcards" id="flashcards">
+    <button class="flashcard" data-vocab="cower">
+      <div class="flashcard-inner">
+        <div class="face front"><h3>cower</h3><div class="pron">[KOW-ur]</div><div class="hint">verb &middot; tap to flip</div></div>
+        <div class="face back">To crouch down or shrink back in fear, in a frightened or submissive way.</div>
+      </div>
+    </button>
+    <button class="flashcard" data-vocab="pithicus">
+      <div class="flashcard-inner">
+        <div class="face front"><h3>pithicus</h3><div class="pron">[PITH-ih-kis]</div><div class="hint">root &middot; tap to flip</div></div>
+        <div class="face back">Of or related to apes or monkeys.</div>
+      </div>
+    </button>
+    <button class="flashcard" data-vocab="raptor">
+      <div class="flashcard-inner">
+        <div class="face front"><h3>raptor</h3><div class="pron">[RAP-ter]</div><div class="hint">root &middot; tap to flip</div></div>
+        <div class="face back">Of or relating to an animal who "steals" as a predator or hunter &mdash; like the velociraptor.</div>
+      </div>
+    </button>
+    <button class="flashcard" data-vocab="rex">
+      <div class="flashcard-inner">
+        <div class="face front"><h3>rex</h3><div class="pron">[recks]</div><div class="hint">root &middot; tap to flip</div></div>
+        <div class="face back">Of or relating to an animal who is impressive, like a king or ruler &mdash; like the tyrannosaurus rex.</div>
+      </div>
+    </button>
+    <button class="flashcard" data-vocab="odon">
+      <div class="flashcard-inner">
+        <div class="face front"><h3>odon</h3><div class="pron">[oh-don]</div><div class="hint">root &middot; tap to flip</div></div>
+        <div class="face back">Of or relating to many or large teeth, like the megalodon, who had enormous teeth.</div>
+      </div>
+    </button>
+  </div>
+
+  <div class="name-forge">
+    <h3>Monster Name Forge</h3>
+    <p>Mix and match roots to forge a brand-new monster name!</p>
+    <div class="forge-controls">
+      <select id="forgePrefix">
+        <option value="Mega">Mega-</option>
+        <option value="Cryo">Cryo-</option>
+        <option value="Pyro">Pyro-</option>
+        <option value="Hydra">Hydra-</option>
+        <option value="Terra">Terra-</option>
+        <option value="Volta">Volta-</option>
+      </select>
+      <select id="forgeRoot">
+        <option value="pithicus">pithicus</option>
+        <option value="raptor">raptor</option>
+        <option value="rex">rex</option>
+        <option value="odon">odon</option>
+      </select>
+      <button id="forgeBtn">Forge!</button>
+      <button id="randomBtn" style="background:#caa45c">Random</button>
+    </div>
+    <div class="forge-result" id="forgeResult">
+      <span id="forgeName">Your monster's name will appear here...</span>
+      <span class="sub" id="forgeSub">Mix a prefix and a root, then press Forge.</span>
+    </div>
+  </div>
+  <button class="claim" data-q="5" disabled>Flip every card and forge a name to claim 15 XP</button>
+</section>
+
+<!-- FINAL -->
+<section class="quest" id="final">
+  <div class="quest-head">
+    <span class="ribbon" style="background:var(--emerald)">FINAL</span>
+    <h2>Homework Scroll</h2>
+  </div>
+  <div class="homework">
+    <div class="hw-card"><strong>1. Polish your prototype</strong>Finish revising and bring it to class next week for final testing. Ask a family member or friend to read it for clarity.</div>
+    <div class="hw-card"><strong>2. Prepare for the Unit 4 exam</strong>Review the vocabulary and grammar skills in your workbook.</div>
+    <div class="hw-card"><strong>3. Reading</strong>Complete this week's reading assignment in <em>Tales from the Odyssey</em>.</div>
+  </div>
+</section>
+
+<!-- FANFARE -->
+<section class="fanfare" id="fanfare">
+  <h2>Master Monster Maker!</h2>
+  <p>You completed every quest and earned all 5 badges. You're ready for next week's Battle Simulation!</p>
+</section>
+
+<div id="toast"></div>
+
+<footer>Lesson 35 &middot; Monster Maker's Convention &middot; Honors Language Arts 3</footer>
+
+<script>
+(function(){
+  /* ============ STATE ============ */
+  var QUESTS = [1,2,3,4,5];
+  var XP_FOR = {1:10, 2:15, 3:20, 4:15, 5:15};
+  var MAX_XP = 0;
+  for (var k in XP_FOR) MAX_XP += XP_FOR[k];
+
+  var STATE_KEY = "mmc_state_v1";
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveState(s){ localStorage.setItem(STATE_KEY, JSON.stringify(s)); }
+  var state = loadState();
+  if(!state.claimed) state.claimed = {};
+  if(!state.scroll) state.scroll = {stars:"", pushes:"", questions:""};
+  if(!state.revision) state.revision = {};
+  if(state.sort === undefined) state.sort = false;
+  if(!state.battle) state.battle = {move:null, voted:false};
+  if(!state.vocab) state.vocab = {flipped:{}, forged:false};
+
+  /* ============ HUD ============ */
+  function refreshHud(){
+    var xp = 0;
+    QUESTS.forEach(function(q){ if(state.claimed[q]) xp += XP_FOR[q]; });
+    document.getElementById("xpNow").textContent = xp;
+    document.getElementById("xpMax").textContent = MAX_XP;
+    document.getElementById("xpBar").style.width = (xp/MAX_XP*100) + "%";
+
+    document.querySelectorAll(".badge").forEach(function(b){
+      var q = b.dataset.q;
+      b.classList.toggle("earned", !!state.claimed[q]);
+    });
+    document.querySelectorAll(".quest-tile").forEach(function(t){
+      var q = t.dataset.q;
+      t.classList.toggle("done", !!state.claimed[q]);
+    });
+    document.querySelectorAll(".claim").forEach(function(btn){
+      var q = btn.dataset.q;
+      if(state.claimed[q]){
+        btn.textContent = "Claimed";
+        btn.classList.add("claimed");
+        btn.disabled = true;
+      }
+    });
+
+    var allDone = QUESTS.every(function(q){ return state.claimed[q]; });
+    if(allDone) document.getElementById("fanfare").classList.add("show");
+  }
+
+  /* ============ TOAST ============ */
+  function toast(msg){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  /* ============ CLAIM ============ */
+  function canClaim(q){
+    if(q===1){
+      return ["stars","pushes","questions"].every(function(k){
+        return (state.scroll[k]||"").trim().length >= 3;
+      });
+    }
+    if(q===2) return !!state.sort;
+    if(q===3){
+      var req = ["r1","r2","r3","r4","r5","r6","r7"];
+      return req.every(function(id){ return !!state.revision[id]; });
+    }
+    if(q===4) return !!state.battle.move && !!state.battle.voted;
+    if(q===5){
+      var all = ["cower","pithicus","raptor","rex","odon"].every(function(v){
+        return !!state.vocab.flipped[v];
+      });
+      return all && state.vocab.forged;
+    }
+    return false;
+  }
+  function claim(q){
+    if(state.claimed[q]) return;
+    if(!canClaim(q)){
+      var msgs = {
+        1:"Fill in all three boxes first (a few words each).",
+        2:"Sort all six cards correctly first.",
+        3:"Check every box first.",
+        4:"Pick a move and vote on it first.",
+        5:"Flip every card and forge a name first."
+      };
+      toast(msgs[q] || "Finish the quest first!");
+      return;
+    }
+    state.claimed[q] = true;
+    saveState(state);
+    refreshHud();
+    toast("+" + XP_FOR[q] + " XP! Badge unlocked.");
+  }
+  function updateClaimButtons(){
+    QUESTS.forEach(function(q){
+      var btn = document.querySelector('.claim[data-q="'+q+'"]');
+      if(!btn || state.claimed[q]) return;
+      btn.disabled = !canClaim(q);
+      if(!btn.disabled){
+        btn.textContent = "Claim " + XP_FOR[q] + " XP";
+      }
+    });
+  }
+  document.querySelectorAll(".claim").forEach(function(btn){
+    btn.addEventListener("click", function(){ claim(parseInt(btn.dataset.q,10)); });
+  });
+
+  /* ============ Q1 - SCROLL ============ */
+  ["stars","pushes","questions"].forEach(function(id){
+    var el = document.getElementById(id);
+    el.value = state.scroll[id] || "";
+    el.addEventListener("input", function(){
+      state.scroll[id] = el.value;
+      saveState(state);
+      updateClaimButtons();
+    });
+  });
+
+  /* ============ Q2 - SORT GAME ============ */
+  var SORT_CARDS = [
+    {text:"I loved how spooky your monster's teeth are.", type:"compliment"},
+    {text:"My favorite part was the shifting maze.", type:"compliment"},
+    {text:"It was so cool the way you described its eyes.", type:"compliment"},
+    {text:"Maybe you could make the ending stronger by adding a clue.", type:"suggestion"},
+    {text:"I was a little confused by step 3 in your guide.", type:"suggestion"},
+    {text:"What would happen if your monster had only one weakness?", type:"suggestion"}
+  ];
+
+  function renderSortGame(){
+    var deck = document.getElementById("sortDeck");
+    while(deck.firstChild) deck.removeChild(deck.firstChild);
+    var cards = SORT_CARDS.slice().sort(function(){ return Math.random()-0.5; });
+    cards.forEach(function(c, i){
+      var el = document.createElement("div");
+      el.className = "sort-card";
+      el.textContent = c.text;
+      el.draggable = true;
+      el.dataset.type = c.type;
+      el.dataset.id = "c"+i;
+      el.addEventListener("dragstart", function(e){
+        el.classList.add("dragging");
+        e.dataTransfer.setData("text/plain", el.dataset.id);
+      });
+      el.addEventListener("dragend", function(){ el.classList.remove("dragging"); });
+      el.addEventListener("click", function(){
+        var current = el.parentElement;
+        var idx = current.classList.contains("sort-deck") ? 0 :
+                  current.parentElement.dataset.type === "compliment" ? 1 : 2;
+        var next = (idx+1) % 3;
+        if(next === 0) deck.appendChild(el);
+        else {
+          var binType = next === 1 ? "compliment" : "suggestion";
+          var bin = document.querySelector('.sort-bin[data-type="'+binType+'"] .bin-cards');
+          bin.appendChild(el);
+        }
+        checkSort();
+      });
+      deck.appendChild(el);
+    });
+
+    document.querySelectorAll(".sort-bin").forEach(function(bin){
+      bin.addEventListener("dragover", function(e){ e.preventDefault(); bin.classList.add("drag-over"); });
+      bin.addEventListener("dragleave", function(){ bin.classList.remove("drag-over"); });
+      bin.addEventListener("drop", function(e){
+        e.preventDefault();
+        bin.classList.remove("drag-over");
+        var id = e.dataTransfer.getData("text/plain");
+        var card = document.querySelector('.sort-card[data-id="'+id+'"]');
+        if(card) bin.querySelector(".bin-cards").appendChild(card);
+        checkSort();
+      });
+    });
+  }
+  function checkSort(){
+    var fb = document.getElementById("sortFeedback");
+    var correct = 0, placed = 0;
+    document.querySelectorAll(".sort-bin").forEach(function(bin){
+      var want = bin.dataset.type;
+      bin.querySelectorAll(".sort-card").forEach(function(c){
+        placed++;
+        if(c.dataset.type === want) correct++;
+      });
+    });
+    if(placed === 0){ fb.textContent = ""; fb.className="sort-feedback"; return; }
+    if(placed < SORT_CARDS.length){
+      fb.textContent = "Sorted " + placed + "/" + SORT_CARDS.length + "...";
+      fb.className = "sort-feedback partial";
+      state.sort = false;
+    } else if(correct === SORT_CARDS.length){
+      fb.textContent = "All sorted correctly! XP unlocked!";
+      fb.className = "sort-feedback win";
+      state.sort = true;
+    } else {
+      fb.textContent = correct + "/" + SORT_CARDS.length + " correct - try moving the wrong ones.";
+      fb.className = "sort-feedback partial";
+      state.sort = false;
+    }
+    saveState(state);
+    updateClaimButtons();
+  }
+  renderSortGame();
+
+  /* ============ Q3 - CHECKLIST ============ */
+  document.querySelectorAll("#revisionList li").forEach(function(li){
+    var id = li.dataset.id;
+    if(state.revision[id]) li.classList.add("checked");
+    li.addEventListener("click", function(){
+      li.classList.toggle("checked");
+      state.revision[id] = li.classList.contains("checked");
+      saveState(state);
+      updateClaimButtons();
+    });
+  });
+
+  /* ============ Q4 - BATTLE ============ */
+  var BATTLE_RESPONSES = {
+    match: "The Hydra freezes - fire frightens it (even though fire can't hurt it). The maze walls shimmer and pause. The class murmurs: 'A smart use of a weakness!'",
+    sword: "Snip! Two new heads grow where the old one fell. The Hydra roars louder. The class winces: 'Cutting only made it stronger...'",
+    joke: "Three of the heads tilt to listen. The shifting maze slows down. The class nods: 'You distracted it - sneaky!'",
+    lute: "The Hydra's eyes blink slowly. One head almost smiles. The class whispers: 'You charmed it - but is it enough?'"
+  };
+  document.querySelectorAll(".move-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var move = btn.dataset.move;
+      document.querySelectorAll(".move-btn").forEach(function(b){ b.disabled = true; });
+      btn.style.background = "var(--gold-deep)";
+      document.getElementById("battleResponse").textContent = BATTLE_RESPONSES[move];
+      document.getElementById("voteArea").classList.remove("hidden");
+      state.battle.move = move;
+      saveState(state);
+      updateClaimButtons();
+    });
+  });
+  document.querySelectorAll(".vote-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var v = btn.dataset.vote;
+      state.battle.voted = true;
+      saveState(state);
+      var fb = document.getElementById("battleResponse");
+      var voteText = v === "up" ? " You voted: Smart Move!" : " You voted: Not So Smart.";
+      fb.textContent = fb.textContent + voteText;
+      document.getElementById("voteArea").classList.add("hidden");
+      updateClaimButtons();
+    });
+  });
+  if(state.battle.move){
+    var savedBtn = document.querySelector('.move-btn[data-move="'+state.battle.move+'"]');
+    if(savedBtn){
+      document.querySelectorAll(".move-btn").forEach(function(b){ b.disabled = true; });
+      savedBtn.style.background = "var(--gold-deep)";
+      document.getElementById("battleResponse").textContent = BATTLE_RESPONSES[state.battle.move];
+      if(!state.battle.voted) document.getElementById("voteArea").classList.remove("hidden");
+    }
+  }
+
+  /* ============ Q5 - VOCAB ============ */
+  document.querySelectorAll(".flashcard").forEach(function(card){
+    var v = card.dataset.vocab;
+    if(state.vocab.flipped[v]) card.classList.add("flipped");
+    card.addEventListener("click", function(){
+      card.classList.toggle("flipped");
+      state.vocab.flipped[v] = card.classList.contains("flipped");
+      saveState(state);
+      updateClaimButtons();
+    });
+  });
+
+  var ROOT_MEANINGS = {
+    pithicus:"ape-like",
+    raptor:"thieving predator",
+    rex:"impressive king",
+    odon:"big-toothed"
+  };
+  var PREFIX_MEANINGS = {
+    Mega:"giant",
+    Cryo:"ice",
+    Pyro:"fire",
+    Hydra:"many-headed",
+    Terra:"earth",
+    Volta:"electric"
+  };
+  function forgeName(){
+    var p = document.getElementById("forgePrefix").value;
+    var r = document.getElementById("forgeRoot").value;
+    if(!PREFIX_MEANINGS[p] || !ROOT_MEANINGS[r]) return;
+    var name = p + r.charAt(0).toUpperCase() + r.slice(1);
+    document.getElementById("forgeName").textContent = name;
+    document.getElementById("forgeSub").textContent = "A " + PREFIX_MEANINGS[p] + ", " + ROOT_MEANINGS[r] + " beast!";
+    state.vocab.forged = true;
+    saveState(state);
+    updateClaimButtons();
+  }
+  function randomName(){
+    var ps = Object.keys(PREFIX_MEANINGS);
+    var rs = Object.keys(ROOT_MEANINGS);
+    document.getElementById("forgePrefix").value = ps[Math.floor(Math.random()*ps.length)];
+    document.getElementById("forgeRoot").value = rs[Math.floor(Math.random()*rs.length)];
+    forgeName();
+  }
+  document.getElementById("forgeBtn").addEventListener("click", forgeName);
+  document.getElementById("randomBtn").addEventListener("click", randomName);
+
+  /* ============ RESET ============ */
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(!confirm("Reset all progress? This clears your XP, badges, and answers.")) return;
+    localStorage.removeItem(STATE_KEY);
+    location.reload();
+  });
+
+  /* ============ INIT ============ */
+  refreshHud();
+  updateClaimButtons();
+})();
+</script>
+</body>
+</html>
